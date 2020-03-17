@@ -11,11 +11,14 @@ class Recipient extends Model {
         state: Sequelize.STRING,
         city: Sequelize.STRING,
         zip_code: Sequelize.STRING,
+        deleted_at: Sequelize.DATE,
       },
       {
         sequelize,
       }
     );
+
+    return this;
   }
 }
 

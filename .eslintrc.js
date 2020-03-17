@@ -8,7 +8,7 @@ module.exports = {
     'prettier'
   ],
   plugins: [
-    'prettier'
+    'prettier',
   ],
   globals: {
     Atomics: 'readonly',

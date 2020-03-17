@@ -1,12 +1,18 @@
 import * as Yup from 'yup';
 
 import Recipient from '../models/Recipient';
+import User from '../models/User';
 
 class RecipientController {
   async index(req, res) {
+    const { page = 1 } = req.query;
+
     const recipients = await Recipient.findAll({
+      where: { deleted_at: null },
       order: ['id'],
-      attributes: { exclude: ['createdAt', 'updatedAt'] },
+      limit: 20,
+      offset: (page - 1) * 20,
+      attributes: { exclude: ['createdAt', 'updatedAt', 'deleted_at'] },
     });
 
     return res.json(recipients);
@@ -15,9 +21,7 @@ class RecipientController {
   async show(req, res) {
     const recipient_id = req.params.id;
 
-    const recipient = await Recipient.findByPk(recipient_id, {
-      attributes: { exclude: ['createdAt', 'updatedAt'] },
-    });
+    const recipient = await Recipient.findByPk(recipient_id);
 
     if (!recipient) {
       return res
@@ -25,10 +29,42 @@ class RecipientController {
         .json({ error: `Recipient of id ${recipient_id} not found.` });
     }
 
-    return res.json(recipient);
+    if (recipient.deleted_at) {
+      return res
+        .status(400)
+        .json({ error: `Recipient of id ${recipient_id} deleted.` });
+    }
+
+    const {
+      id,
+      name,
+      street,
+      number,
+      complement,
+      state,
+      city,
+      zip_code,
+    } = recipient;
+
+    return res.json({
+      id,
+      name,
+      street,
+      number,
+      complement,
+      state,
+      city,
+      zip_code,
+    });
   }
 
   async store(req, res) {
+    if (!(await User.isAdministrator(req.userId))) {
+      return res
+        .status(401)
+        .json({ error: 'User is not allowed to access this resource.' });
+    }
+
     const schema = Yup.object().shape({
       name: Yup.string().required(),
       street: Yup.string().required(),
@@ -49,6 +85,7 @@ class RecipientController {
     const recipient = await Recipient.create(req.body);
 
     const {
+      id,
       name,
       street,
       number,
@@ -59,6 +96,7 @@ class RecipientController {
     } = recipient;
 
     return res.json({
+      id,
       name,
       street,
       number,
@@ -70,6 +108,12 @@ class RecipientController {
   }
 
   async update(req, res) {
+    if (!(await User.isAdministrator(req.userId))) {
+      return res
+        .status(401)
+        .json({ error: 'User is not allowed to access this resource.' });
+    }
+
     const schema = Yup.object().shape({
       name: Yup.string(),
       street: Yup.string(),
@@ -96,6 +140,12 @@ class RecipientController {
         .json({ error: `Recipient of id ${recipient_id} not found.` });
     }
 
+    if (recipient.deleted_at) {
+      return res
+        .status(400)
+        .json({ error: `Recipient of id ${recipient_id} deleted.` });
+    }
+
     const {
       id,
       name,
@@ -120,19 +170,35 @@ class RecipientController {
   }
 
   async delete(req, res) {
-    try {
-      const { id: recipient_id } = req.params;
+    const { id: recipient_id } = req.params;
 
-      const deleted = await Recipient.destroy({ where: { id: recipient_id } });
-
-      if (deleted) {
-        return res.status(204).send('Recipient deleted.');
-      }
-
-      throw new Error(`Recipient of id ${recipient_id} not found.`);
-    } catch (error) {
-      return res.status(500).send(error.message);
+    if (!(await User.isAdministrator(req.userId))) {
+      return res
+        .status(401)
+        .json({ error: 'User is not allowed to access this resource.' });
     }
+
+    const recipient = await Recipient.findByPk(recipient_id);
+
+    if (!recipient) {
+      return res
+        .status(400)
+        .json({ error: `Recipient of id ${recipient_id} not found.` });
+    }
+
+    if (recipient.deleted_at) {
+      return res
+        .status(400)
+        .json({ error: `Recipient of id ${recipient_id} deleted.` });
+    }
+
+    recipient.deleted_at = new Date();
+
+    await recipient.save();
+
+    return res
+      .status(204)
+      .send(`Recipient of id ${recipient_id} deleted with success.`);
   }
 }
 

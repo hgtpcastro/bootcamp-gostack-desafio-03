@@ -17,7 +17,7 @@ class UserController {
     });
 
     if (!(await schema.isValid(req.body))) {
-      return res.status(400).json('Validation fails.');
+      return res.status(400).json('Validation failed.');
     }
 
     const userExists = await User.findOne({
@@ -30,13 +30,13 @@ class UserController {
       return res.status(400).json({ error: 'User already exists.' });
     }
 
-    const { id, name, email, provider } = await User.create(req.body);
+    const { id, name, email, administrator } = await User.create(req.body);
 
     return res.json({
       id,
       name,
       email,
-      provider,
+      administrator,
     });
   }
 
@@ -56,7 +56,7 @@ class UserController {
     });
 
     if (!(await schema.isValid(req.body))) {
-      return res.status(400).json('Validation fails.');
+      return res.status(400).json('Validation failed.');
     }
 
     const { email, oldPassword } = req.body;
@@ -75,13 +75,13 @@ class UserController {
       return res.status(401).json({ error: 'Password does not match.' });
     }
 
-    const { id, name, provider } = await user.update(req.body);
+    const { id, name, administrator } = await user.update(req.body);
 
     return res.json({
       id,
       name,
       email,
-      provider,
+      administrator,
     });
   }
 }
