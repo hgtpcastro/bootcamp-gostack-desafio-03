@@ -1,4 +1,5 @@
 import * as Yup from 'yup';
+import { Op } from 'sequelize';
 
 import Delivery from '../models/Delivery';
 import Deliveryman from '../models/Deliveryman';
@@ -10,10 +11,18 @@ import Queue from '../../lib/Queue';
 
 class DeliveryController {
   async index(req, res) {
-    const { page = 1 } = req.query;
+    const { page = 1, q } = req.query;
+    let whereObject = { canceled_at: null };
+
+    if (q) {
+      whereObject = {
+        produtct: { [Op.like]: `%${q}%` },
+        canceled_at: null,
+      };
+    }
 
     const deliveries = await Delivery.findAll({
-      where: { canceled_at: null },
+      where: whereObject,
       order: ['id'],
       limit: 20,
       offset: (page - 1) * 20,

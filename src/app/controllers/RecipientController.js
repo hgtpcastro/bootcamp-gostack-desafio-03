@@ -1,14 +1,23 @@
 import * as Yup from 'yup';
+import { Op } from 'sequelize';
 
 import Recipient from '../models/Recipient';
 import User from '../models/User';
 
 class RecipientController {
   async index(req, res) {
-    const { page = 1 } = req.query;
+    const { page = 1, q } = req.query;
+    let whereObject = { deleted_at: null };
+
+    if (q) {
+      whereObject = {
+        name: { [Op.like]: `%${q}%` },
+        deleted_at: null,
+      };
+    }
 
     const recipients = await Recipient.findAll({
-      where: { deleted_at: null },
+      where: whereObject,
       order: ['id'],
       limit: 20,
       offset: (page - 1) * 20,
