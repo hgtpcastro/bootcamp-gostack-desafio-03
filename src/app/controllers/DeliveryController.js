@@ -16,7 +16,7 @@ class DeliveryController {
 
     if (q) {
       whereObject = {
-        produtct: { [Op.like]: `%${q}%` },
+        product: { [Op.like]: `%${q}%` },
         canceled_at: null,
       };
     }

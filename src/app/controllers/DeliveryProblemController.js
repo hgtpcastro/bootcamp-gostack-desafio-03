@@ -15,10 +15,14 @@ class DeliveryProblemController {
     const { page = 1 } = req.query;
     let whereObject = {};
 
-    const deliveryExists = await Delivery.findByPk(id);
+    if (id) {
+      const deliveryExists = await Delivery.findByPk(id);
 
-    if (!deliveryExists) {
-      return res.status(404).json({ error: `Delivery of id ${id} not found.` });
+      if (!deliveryExists) {
+        return res
+          .status(404)
+          .json({ error: `Delivery of id ${id} not found.` });
+      }
     }
 
     if (id) {
@@ -29,7 +33,7 @@ class DeliveryProblemController {
 
     const problems = await DeliveryProblem.findAll({
       where: whereObject,
-      order: ['created_at', 'DESC'],
+      order: [['created_at', 'DESC']],
       limit: 20,
       offset: (page - 1) * 20,
       attributes: {
@@ -179,11 +183,6 @@ class DeliveryProblemController {
       return res.status(404).json({ error: `Problem of id ${id} not found.` });
     }
 
-    await Delivery.update(
-      { canceled_at: new Date() },
-      { where: { id: problem.delivery_id } }
-    );
-
     const delivery = await Delivery.findByPk(problem.delivery_id, {
       attributes: {
         exclude: [
@@ -229,6 +228,18 @@ class DeliveryProblemController {
         },
       ],
     });
+
+    if (!delivery) {
+      return res.status(404).json({ error: `Delivery of id ${id} not found.` });
+    }
+
+    if (delivery.canceled_at) {
+      return res.status(404).json({ error: 'Delivery is canceled.' });
+    }
+
+    await delivery.update({ canceled_at: new Date() });
+
+    delivery.description = problem.description;
 
     /**
      * Quando uma encomenda for cancelada, o entregador deve receber um e-mail
