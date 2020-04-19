@@ -89,7 +89,7 @@ class RecipientController {
     });
 
     if (!(await schema.isValid(req.body))) {
-      return res.status(400).json('Validation fails.');
+      return res.status(400).json({ error: 'Validation failed' });
     }
 
     const recipient = await Recipient.create(req.body);
@@ -125,19 +125,20 @@ class RecipientController {
     }
 
     const schema = Yup.object().shape({
-      name: Yup.string(),
-      street: Yup.string(),
-      number: Yup.string(),
+      name: Yup.string().required(),
+      street: Yup.string().required(),
+      number: Yup.string().required(),
       complement: Yup.string(),
       state: Yup.string()
+        .required()
         .strict(true)
         .max(2),
-      city: Yup.string(),
-      zip_code: Yup.string(),
+      city: Yup.string().required(),
+      zip_code: Yup.string().required(),
     });
 
     if (!(await schema.isValid(req.body))) {
-      return res.status(400).json('Validation fails.');
+      return res.status(400).json({ error: 'Validation fails.' });
     }
 
     const { id: recipient_id } = req.params;
