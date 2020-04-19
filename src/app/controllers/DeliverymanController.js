@@ -7,6 +7,7 @@ import File from '../models/File';
 class DeliverymanController {
   async index(req, res) {
     const { page = 1, q } = req.query;
+    const pageLimit = 10;
     let whereObject = { deleted_at: null };
 
     if (q) {
@@ -16,11 +17,11 @@ class DeliverymanController {
       };
     }
 
-    const deliverymen = await Deliveryman.findAll({
+    const deliverymen = await Deliveryman.findAndCountAll({
       where: whereObject,
-      order: ['id'],
-      limit: 20,
-      offset: (page - 1) * 20,
+      order: [['id', 'DESC']],
+      limit: pageLimit,
+      offset: (page - 1) * pageLimit,
       attributes: {
         exclude: ['createdAt', 'updatedAt', 'deleted_at', 'avatar_id'],
       },
@@ -80,7 +81,6 @@ class DeliverymanController {
       email: Yup.string()
         .email()
         .required(),
-      avatar_id: Yup.number(),
     });
 
     if (!(await schema.isValid(req.body))) {
@@ -112,7 +112,6 @@ class DeliverymanController {
     const schema = Yup.object().shape({
       name: Yup.string().strict(),
       email: Yup.string().email(),
-      avatar_id: Yup.number(),
     });
 
     if (!(await schema.isValid(req.body))) {

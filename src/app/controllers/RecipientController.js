@@ -8,6 +8,7 @@ class RecipientController {
   async index(req, res) {
     const { page = 1, q } = req.query;
     let whereObject = { deleted_at: null };
+    const pageLimit = 10;
 
     if (q) {
       whereObject = {
@@ -16,11 +17,11 @@ class RecipientController {
       };
     }
 
-    const recipients = await Recipient.findAll({
+    const recipients = await Recipient.findAndCountAll({
       where: whereObject,
-      order: ['id'],
-      limit: 20,
-      offset: (page - 1) * 20,
+      order: [['id', 'DESC']],
+      limit: pageLimit,
+      offset: (page - 1) * pageLimit,
       attributes: { exclude: ['createdAt', 'updatedAt', 'deleted_at'] },
     });
 

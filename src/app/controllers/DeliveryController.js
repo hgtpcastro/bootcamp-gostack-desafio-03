@@ -2,6 +2,7 @@ import * as Yup from 'yup';
 import { Op } from 'sequelize';
 
 import Delivery from '../models/Delivery';
+import DeliveryProblem from '../models/DeliveryProblem';
 import Deliveryman from '../models/Deliveryman';
 import File from '../models/File';
 import Recipient from '../models/Recipient';
@@ -11,32 +12,42 @@ import Queue from '../../lib/Queue';
 
 class DeliveryController {
   async index(req, res) {
-    const { page = 1, q } = req.query;
-    let whereObject = { canceled_at: null };
+    const { page = 1, q, withProblems } = req.query;
+    const pageLimit = 10;
+    let whereObject = {};
+    let wherePropblemsObject = {};
 
     if (q) {
       whereObject = {
         product: { [Op.like]: `%${q}%` },
-        canceled_at: null,
       };
     }
 
-    const deliveries = await Delivery.findAll({
+    if (withProblems) {
+      wherePropblemsObject = { where: { id: { [Op.not]: null } } };
+    }
+
+    const deliveries = await Delivery.findAndCountAll({
       where: whereObject,
-      order: ['id'],
-      limit: 20,
-      offset: (page - 1) * 20,
+      order: [['id', 'DESC']],
+      limit: pageLimit,
+      offset: (page - 1) * pageLimit,
       attributes: {
         exclude: [
           'createdAt',
           'updatedAt',
           'recipient_id',
-          'canceled_at',
           'deliveryman_id',
           'signature_id',
         ],
       },
       include: [
+        {
+          model: DeliveryProblem,
+          as: 'problems',
+          attributes: ['id', 'description', 'deleted_at', 'createdAt'],
+          ...wherePropblemsObject,
+        },
         {
           model: File,
           as: 'signature',
@@ -83,12 +94,16 @@ class DeliveryController {
           'createdAt',
           'updatedAt',
           'recipient_id',
-          'canceled_at',
           'deliveryman_id',
           'signature_id',
         ],
       },
       include: [
+        {
+          model: DeliveryProblem,
+          as: 'problems',
+          attributes: ['id', 'description', 'deleted_at', 'createdAt'],
+        },
         {
           model: File,
           as: 'signature',
@@ -135,7 +150,9 @@ class DeliveryController {
       product,
       start_date,
       end_date,
+      canceled_at,
       signature,
+      problems,
       recipient,
       deliveryman,
     } = delivery;
@@ -145,7 +162,9 @@ class DeliveryController {
       product,
       start_date,
       end_date,
+      canceled_at,
       signature,
+      problems,
       recipient,
       deliveryman,
     });
@@ -247,7 +266,7 @@ class DeliveryController {
     const delivery = await Delivery.findOne({
       where: {
         id,
-        canceled_at: null,
+        // canceled_at: null,
       },
       attributes: {
         exclude: [
@@ -260,6 +279,11 @@ class DeliveryController {
         ],
       },
       include: [
+        {
+          model: DeliveryProblem,
+          as: 'problems',
+          attributes: ['id', 'description', 'deleted_at', 'createdAt'],
+        },
         {
           model: File,
           as: 'signature',
@@ -363,7 +387,7 @@ class DeliveryController {
   async delete(req, res) {
     const { id } = req.params;
 
-    const delivery = await Recipient.findByPk(id);
+    const delivery = await Delivery.findByPk(id);
 
     if (!delivery) {
       return res.status(404).json({ error: `Delivery of id ${id} not found.` });
@@ -381,11 +405,17 @@ class DeliveryController {
         .json({ error: `Delivery of id ${id}, already started.` });
     }
 
-    delivery.canceled_at = new Date();
+    // delivery.canceled_at = new Date();
 
-    await delivery.save();
+    // await delivery.save();
 
-    return res.status(204).send(`Delivery of id ${id} deleted with success.`);
+    // return res.status(204).send(`Delivery of id ${id} deleted with success.`);
+
+    await delivery.destroy();
+
+    return res.json({
+      message: `Delivery of id ${id}, deleted with success.`,
+    });
   }
 }
 

@@ -12,6 +12,7 @@ import Queue from '../../lib/Queue';
 class DeliveryProblemController {
   async index(req, res) {
     const { id } = req.params;
+    const pageLimit = 10;
     const { page = 1 } = req.query;
     let whereObject = {};
 
@@ -34,8 +35,8 @@ class DeliveryProblemController {
     const problems = await DeliveryProblem.findAll({
       where: whereObject,
       order: [['created_at', 'DESC']],
-      limit: 20,
-      offset: (page - 1) * 20,
+      limit: pageLimit,
+      offset: (page - 1) * pageLimit,
       attributes: {
         exclude: ['createdAt', 'updatedAt', 'deleted_at', 'delivery_id'],
       },
@@ -189,7 +190,6 @@ class DeliveryProblemController {
           'createdAt',
           'updatedAt',
           'recipient_id',
-          'canceled_at',
           'deliveryman_id',
           'signature_id',
         ],
@@ -234,7 +234,9 @@ class DeliveryProblemController {
     }
 
     if (delivery.canceled_at) {
-      return res.status(404).json({ error: 'Delivery is canceled.' });
+      return res
+        .status(404)
+        .json({ error: 'This delivery has already been canceled.' });
     }
 
     await delivery.update({ canceled_at: new Date() });
